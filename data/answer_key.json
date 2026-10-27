@@ -1,0 +1,118 @@
+{
+  "true_causes": [
+    {
+      "cause": "rain_reduces_outdoor_seating_sales",
+      "store_ids": [
+        "CAF-FIT-01",
+        "CAF-STK-02",
+        "CAF-BRU-03"
+      ],
+      "dates": [
+        "2026-02-11",
+        "2026-02-22",
+        "2026-02-24",
+        "2026-03-01",
+        "2026-03-02",
+        "2026-03-16",
+        "2026-03-25",
+        "2026-03-26",
+        "2026-03-27",
+        "2026-03-28",
+        "2026-04-06",
+        "2026-05-03",
+        "2026-05-17",
+        "2026-05-25",
+        "2026-05-27",
+        "2026-06-01",
+        "2026-06-04",
+        "2026-06-13",
+        "2026-06-16",
+        "2026-06-20",
+        "2026-06-30",
+        "2026-07-02",
+        "2026-07-11",
+        "2026-07-12",
+        "2026-07-22",
+        "2026-07-28",
+        "2026-08-04",
+        "2026-08-09",
+        "2026-08-10",
+        "2026-08-19",
+        "2026-08-25",
+        "2026-09-05",
+        "2026-09-26",
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-12"
+      ],
+      "precipitation_threshold_mm": 5.0,
+      "sales_effect": "about 30% lower sales",
+      "waste_effect": "waste rises because stores still prepared normal volume"
+    },
+    {
+      "cause": "public_holiday_reduces_cbd_office_sales",
+      "store_ids": [
+        "CAF-COL-04",
+        "CAF-BRK-05",
+        "CAF-DOC-06"
+      ],
+      "dates": [
+        "2026-01-01",
+        "2026-01-26",
+        "2026-03-09",
+        "2026-04-03",
+        "2026-04-04",
+        "2026-04-05",
+        "2026-04-06",
+        "2026-04-25",
+        "2026-06-08",
+        "2026-09-25"
+      ],
+      "holidays": {
+        "2026-01-01": "New Year's Day",
+        "2026-01-26": "Australia Day",
+        "2026-03-09": "Labour Day",
+        "2026-04-03": "Good Friday",
+        "2026-04-04": "Easter Eve",
+        "2026-04-05": "Easter Sunday",
+        "2026-04-06": "Easter Monday",
+        "2026-04-25": "Anzac Day",
+        "2026-06-08": "King's Birthday",
+        "2026-09-25": "Friday before AFL Grand Final"
+      },
+      "sales_effect": "about 40% lower sales"
+    },
+    {
+      "cause": "prep_error_elevated_waste",
+      "store_id": "CAF-CAM-08",
+      "product": "Ham & Cheese Croissant",
+      "dates": [
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-14",
+        "2026-08-15",
+        "2026-08-16"
+      ],
+      "waste_effect": "about 3x normal waste",
+      "sales_effect": "none"
+    }
+  ],
+  "decoy": {
+    "cause": "promotion_no_effect",
+    "store_id": "CAF-HAW-07",
+    "dates": [
+      "2026-05-11",
+      "2026-05-12",
+      "2026-05-13",
+      "2026-05-14",
+      "2026-05-15",
+      "2026-05-16",
+      "2026-05-17"
+    ],
+    "promo_flag": 1,
+    "effect": "no real effect on sales or waste"
+  }
+}
