@@ -1,4 +1,4 @@
-@'
+
 # Case Closed: an AI detective for café food waste
 
 Open Agent Hackathon 2026, Track 02: The Agent That Can Explain Why. Solo project.
