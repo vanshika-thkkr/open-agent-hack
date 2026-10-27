@@ -1,0 +1,10 @@
+PASS  Rain hits outdoor cafes: names rain as a cause (2 of 2 terms)
+PASS  Rain hits outdoor cafes: names outdoor stores (3 of 3 terms)
+PASS  Holidays hit CBD cafes: names public holidays (1 of 1 terms)
+PASS  Holidays hit CBD cafes: names CBD stores (3 of 3 terms)
+PASS  Prep error: finds the store (1 of 1 terms)
+PASS  Prep error: finds the product (1 of 1 terms)
+PASS  Prep error: finds the week (2 of 2 terms)
+PASS  Decoy promotion: names the store (1 of 1 terms)
+PASS  Decoy promotion: rules the promotion out (1 of 1 terms)
+Score: 9/9 checks passed
