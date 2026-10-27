@@ -1,0 +1,375 @@
+{
+  "question": "Our outdoor-seating caf\u00e9s seem to sell less and waste more on certain days. Find out why.",
+  "model_ok": true,
+  "evidence": [
+    {
+      "id": "E1",
+      "title": "Overall waste rate and date range (sanity check)",
+      "tool": "battery",
+      "args": {},
+      "sql": "WITH base AS (\n  SELECT s.date AS date,\n         s.store_id AS store_id,\n         s.product AS product,\n         CASE WHEN lower(CAST(s.outdoor_seating AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS outdoor,\n         lower(CAST(s.area_type AS STRING)) AS area_type,\n         CASE WHEN lower(CAST(s.promo_flag AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS promo,\n         CAST(s.units_sold AS DOUBLE) AS units_sold,\n         CAST(x.units_wasted AS DOUBLE) AS units_wasted\n  FROM cases.sales_table s\n  JOIN cases.waste_table x\n    ON s.date = x.date AND s.store_id = x.store_id AND s.product = x.product\n)\nSELECT ROUND(100.0 * SUM(units_wasted) / SUM(units_sold), 2) AS overall_waste_rate_pct,\n       COUNT(*) AS rows_n,\n       MIN(date) AS first_day,\n       MAX(date) AS last_day\nFROM base",
+      "ok": true,
+      "error": null,
+      "columns": [
+        "overall_waste_rate_pct",
+        "rows_n",
+        "first_day",
+        "last_day"
+      ],
+      "rows": [
+        [
+          "10.43",
+          "11520",
+          "2026-01-01",
+          "2026-10-15"
+        ]
+      ],
+      "row_count": 1
+    },
+    {
+      "id": "E2",
+      "title": "Biggest weekly waste spikes versus each store+product's own median week",
+      "tool": "battery",
+      "args": {},
+      "sql": "WITH weekly AS (\n  SELECT store_id, product, weekofyear(CAST(date AS DATE)) AS wk,\n         MIN(date) AS first_day, MAX(date) AS last_day, SUM(units_wasted) AS wasted\n  FROM cases.waste_table\n  GROUP BY store_id, product, weekofyear(CAST(date AS DATE))\n),\nmed AS (\n  SELECT store_id, product, percentile_approx(wasted, 0.5) AS median_week\n  FROM weekly\n  GROUP BY store_id, product\n)\nSELECT w.store_id, w.product, w.first_day, w.last_day, w.wasted, m.median_week,\n       ROUND(w.wasted / m.median_week, 2) AS ratio\nFROM weekly w\nJOIN med m ON w.store_id = m.store_id AND w.product = m.product\nWHERE m.median_week > 0\nORDER BY ratio DESC\nLIMIT 10",
+      "ok": true,
+      "error": null,
+      "columns": [
+        "store_id",
+        "product",
+        "first_day",
+        "last_day",
+        "wasted",
+        "median_week",
+        "ratio"
+      ],
+      "rows": [
+        [
+          "CAF-CAM-08",
+          "Ham & Cheese Croissant",
+          "2026-08-10",
+          "2026-08-16",
+          "69",
+          "21",
+          "3.29"
+        ],
+        [
+          "CAF-BRU-03",
+          "Banana Bread",
+          "2026-03-23",
+          "2026-03-29",
+          "59",
+          "24",
+          "2.46"
+        ],
+        [
+          "CAF-BRU-03",
+          "Flat White",
+          "2026-03-23",
+          "2026-03-29",
+          "190",
+          "85",
+          "2.24"
+        ],
+        [
+          "CAF-FIT-01",
+          "Espresso",
+          "2026-03-23",
+          "2026-03-29",
+          "106",
+          "48",
+          "2.21"
+        ],
+        [
+          "CAF-BRU-03",
+          "Ham & Cheese Croissant",
+          "2026-03-23",
+          "2026-03-29",
+          "66",
+          "30",
+          "2.2"
+        ],
+        [
+          "CAF-STK-02",
+          "Flat White",
+          "2026-03-23",
+          "2026-03-29",
+          "185",
+          "85",
+          "2.18"
+        ],
+        [
+          "CAF-FIT-01",
+          "Banana Bread",
+          "2026-03-23",
+          "2026-03-29",
+          "52",
+          "24",
+          "2.17"
+        ],
+        [
+          "CAF-FIT-01",
+          "Ham & Cheese Croissant",
+          "2026-03-23",
+          "2026-03-29",
+          "60",
+          "28",
+          "2.14"
+        ],
+        [
+          "CAF-STK-02",
+          "Latte",
+          "2026-03-23",
+          "2026-03-29",
+          "154",
+          "72",
+          "2.14"
+        ],
+        [
+          "CAF-STK-02",
+          "Ham & Cheese Croissant",
+          "2026-03-23",
+          "2026-03-29",
+          "61",
+          "29",
+          "2.1"
+        ]
+      ],
+      "row_count": 10
+    },
+    {
+      "id": "E3",
+      "title": "Rain effect per store: sales and waste on rain days (over 5 mm) versus other days",
+      "tool": "battery",
+      "args": {},
+      "sql": "WITH base AS (\n  SELECT s.date AS date,\n         s.store_id AS store_id,\n         s.product AS product,\n         CASE WHEN lower(CAST(s.outdoor_seating AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS outdoor,\n         lower(CAST(s.area_type AS STRING)) AS area_type,\n         CASE WHEN lower(CAST(s.promo_flag AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS promo,\n         CAST(s.units_sold AS DOUBLE) AS units_sold,\n         CAST(x.units_wasted AS DOUBLE) AS units_wasted\n  FROM cases.sales_table s\n  JOIN cases.waste_table x\n    ON s.date = x.date AND s.store_id = x.store_id AND s.product = x.product\n),\nrb AS (\n  SELECT b.*, CAST(w.precipitation_mm AS DOUBLE) AS rain_mm\n  FROM base b\n  JOIN cases.weather_table w ON b.date = w.date\n)\nSELECT store_id,\n       MAX(outdoor) AS outdoor_seating,\n       MAX(area_type) AS area_type,\n       SUM(CASE WHEN rain_mm > 5 THEN 1 ELSE 0 END) AS rain_rows,\n       ROUND(AVG(CASE WHEN rain_mm > 5 THEN units_sold END), 2) AS avg_sales_rain,\n       ROUND(AVG(CASE WHEN rain_mm <= 5 THEN units_sold END), 2) AS avg_sales_dry,\n       ROUND(AVG(CASE WHEN rain_mm > 5 THEN units_sold END)\n             / AVG(CASE WHEN rain_mm <= 5 THEN units_sold END), 2) AS sales_rain_to_dry,\n       ROUND(100.0 * SUM(CASE WHEN rain_mm > 5 THEN units_wasted END)\n             / SUM(CASE WHEN rain_mm > 5 THEN units_sold END), 2) AS waste_pct_rain,\n       ROUND(100.0 * SUM(CASE WHEN rain_mm <= 5 THEN units_wasted END)\n             / SUM(CASE WHEN rain_mm <= 5 THEN units_sold END), 2) AS waste_pct_dry\nFROM rb\nGROUP BY store_id\nORDER BY sales_rain_to_dry ASC",
+      "ok": true,
+      "error": null,
+      "columns": [
+        "store_id",
+        "outdoor_seating",
+        "area_type",
+        "rain_rows",
+        "avg_sales_rain",
+        "avg_sales_dry",
+        "sales_rain_to_dry",
+        "waste_pct_rain",
+        "waste_pct_dry"
+      ],
+      "rows": [
+        [
+          "CAF-BRU-03",
+          "1",
+          "suburban",
+          "185",
+          "42.35",
+          "61.27",
+          "0.69",
+          "56.07",
+          "8.7"
+        ],
+        [
+          "CAF-FIT-01",
+          "1",
+          "suburban",
+          "185",
+          "42.87",
+          "61.32",
+          "0.7",
+          "54.79",
+          "8.72"
+        ],
+        [
+          "CAF-STK-02",
+          "1",
+          "suburban",
+          "185",
+          "43.23",
+          "61.72",
+          "0.7",
+          "55.56",
+          "8.77"
+        ],
+        [
+          "CAF-BRK-05",
+          "0",
+          "cbd_office",
+          "185",
+          "48.13",
+          "50.0",
+          "0.96",
+          "8.82",
+          "8.67"
+        ],
+        [
+          "CAF-COL-04",
+          "0",
+          "cbd_office",
+          "185",
+          "47.9",
+          "49.97",
+          "0.96",
+          "8.8",
+          "8.7"
+        ],
+        [
+          "CAF-DOC-06",
+          "0",
+          "cbd_office",
+          "185",
+          "47.59",
+          "49.75",
+          "0.96",
+          "8.81",
+          "8.69"
+        ],
+        [
+          "CAF-CAM-08",
+          "0",
+          "suburban",
+          "185",
+          "61.93",
+          "61.18",
+          "1.01",
+          "8.84",
+          "8.7"
+        ],
+        [
+          "CAF-HAW-07",
+          "0",
+          "suburban",
+          "185",
+          "62.1",
+          "61.36",
+          "1.01",
+          "8.48",
+          "8.72"
+        ]
+      ],
+      "row_count": 8
+    },
+    {
+      "id": "E4",
+      "title": "Public-holiday effect per store: sales on holidays versus normal days",
+      "tool": "battery",
+      "args": {},
+      "sql": "WITH base AS (\n  SELECT s.date AS date,\n         s.store_id AS store_id,\n         s.product AS product,\n         CASE WHEN lower(CAST(s.outdoor_seating AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS outdoor,\n         lower(CAST(s.area_type AS STRING)) AS area_type,\n         CASE WHEN lower(CAST(s.promo_flag AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS promo,\n         CAST(s.units_sold AS DOUBLE) AS units_sold,\n         CAST(x.units_wasted AS DOUBLE) AS units_wasted\n  FROM cases.sales_table s\n  JOIN cases.waste_table x\n    ON s.date = x.date AND s.store_id = x.store_id AND s.product = x.product\n),\nhb AS (\n  SELECT b.*, CASE WHEN h.hdate IS NULL THEN 0 ELSE 1 END AS is_holiday\n  FROM base b\n  LEFT JOIN (SELECT DISTINCT date AS hdate FROM cases.holidays_table) h\n    ON b.date = h.hdate\n)\nSELECT store_id,\n       MAX(area_type) AS area_type,\n       SUM(is_holiday) AS holiday_rows,\n       ROUND(AVG(CASE WHEN is_holiday = 1 THEN units_sold END), 2) AS avg_sales_holiday,\n       ROUND(AVG(CASE WHEN is_holiday = 0 THEN units_sold END), 2) AS avg_sales_normal,\n       ROUND(AVG(CASE WHEN is_holiday = 1 THEN units_sold END)\n             / AVG(CASE WHEN is_holiday = 0 THEN units_sold END), 2) AS sales_holiday_to_normal\nFROM hb\nGROUP BY store_id\nORDER BY sales_holiday_to_normal ASC",
+      "ok": true,
+      "error": null,
+      "columns": [
+        "store_id",
+        "area_type",
+        "holiday_rows",
+        "avg_sales_holiday",
+        "avg_sales_normal",
+        "sales_holiday_to_normal"
+      ],
+      "rows": [
+        [
+          "CAF-BRK-05",
+          "cbd_office",
+          "50",
+          "28.64",
+          "50.52",
+          "0.57"
+        ],
+        [
+          "CAF-DOC-06",
+          "cbd_office",
+          "50",
+          "28.38",
+          "50.23",
+          "0.57"
+        ],
+        [
+          "CAF-COL-04",
+          "cbd_office",
+          "50",
+          "30.0",
+          "50.41",
+          "0.6"
+        ],
+        [
+          "CAF-HAW-07",
+          "suburban",
+          "50",
+          "60.88",
+          "61.47",
+          "0.99"
+        ],
+        [
+          "CAF-CAM-08",
+          "suburban",
+          "50",
+          "61.16",
+          "61.28",
+          "1.0"
+        ],
+        [
+          "CAF-STK-02",
+          "suburban",
+          "50",
+          "59.62",
+          "59.34",
+          "1.0"
+        ],
+        [
+          "CAF-FIT-01",
+          "suburban",
+          "50",
+          "59.62",
+          "58.93",
+          "1.01"
+        ],
+        [
+          "CAF-BRU-03",
+          "suburban",
+          "50",
+          "59.88",
+          "58.81",
+          "1.02"
+        ]
+      ],
+      "row_count": 8
+    },
+    {
+      "id": "E5",
+      "title": "Promotion effect: promo days versus non-promo days for stores that ran a promotion",
+      "tool": "battery",
+      "args": {},
+      "sql": "WITH base AS (\n  SELECT s.date AS date,\n         s.store_id AS store_id,\n         s.product AS product,\n         CASE WHEN lower(CAST(s.outdoor_seating AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS outdoor,\n         lower(CAST(s.area_type AS STRING)) AS area_type,\n         CASE WHEN lower(CAST(s.promo_flag AS STRING)) IN ('true', '1', '1.0') THEN 1 ELSE 0 END AS promo,\n         CAST(s.units_sold AS DOUBLE) AS units_sold,\n         CAST(x.units_wasted AS DOUBLE) AS units_wasted\n  FROM cases.sales_table s\n  JOIN cases.waste_table x\n    ON s.date = x.date AND s.store_id = x.store_id AND s.product = x.product\n),\npromo_stores AS (\n  SELECT DISTINCT store_id AS pstore FROM base WHERE promo = 1\n)\nSELECT b.store_id,\n       b.promo,\n       COUNT(*) AS rows_n,\n       MIN(b.date) AS first_day,\n       MAX(b.date) AS last_day,\n       ROUND(AVG(b.units_sold), 2) AS avg_sales,\n       ROUND(100.0 * SUM(b.units_wasted) / SUM(b.units_sold), 2) AS waste_pct\nFROM base b\nJOIN promo_stores p ON b.store_id = p.pstore\nGROUP BY b.store_id, b.promo\nORDER BY b.store_id, b.promo",
+      "ok": true,
+      "error": null,
+      "columns": [
+        "store_id",
+        "promo",
+        "rows_n",
+        "first_day",
+        "last_day",
+        "avg_sales",
+        "waste_pct"
+      ],
+      "rows": [
+        [
+          "CAF-HAW-07",
+          "0",
+          "1405",
+          "2026-01-01",
+          "2026-10-15",
+          "61.47",
+          "8.7"
+        ],
+        [
+          "CAF-HAW-07",
+          "1",
+          "35",
+          "2026-05-11",
+          "2026-05-17",
+          "60.8",
+          "8.36"
+        ]
+      ],
+      "row_count": 2
+    }
+  ]
+}

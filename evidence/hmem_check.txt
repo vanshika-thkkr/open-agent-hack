@@ -1,0 +1,6 @@
+PASS  empty store recalls nothing  [0 items]
+PASS  a verified finding is stored in H-MEM  [record id mem-1]
+PASS  a later, separate process recalls it  [1 items]
+PASS  unrelated questions do not need to match  [1 items]
+PASS  memory was persisted to disk by H-MEM  [ledger.jsonl, state.json]
+Recalled: Case 'Something odd happened with waste in August' on 2026-10-28. Verified prime cause: Ham & Cheese Croissant at CAF-CAM-08 had a preparation problem from 2026-08-10 to 2026-08-16 [E2][E6] Ruled out: Rain [E3]; Promotion [E5] (H-MEM mem-1, confidence 0.9, source case-closed:2026-10-28:evidence [E2]

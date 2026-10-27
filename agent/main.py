@@ -135,7 +135,6 @@ def clean_report(text, question):
     text = (text or "").strip()
     for ch in ("\u2011", "\u2010", "\u2012", "\u2013", "\u2212"):
         text = text.replace(ch, "-")
-
     if "# CASE FILE" in text:
         return text[text.index("# CASE FILE"):]
     return f"# CASE FILE\n**Question:** {question}\n\n{text}"
@@ -216,6 +215,12 @@ def investigate(question):
     recalled = memory.recall(question)
     log("question", question=question)
     log("memory_recall", items=recalled)
+    memory_block = ""
+    if recalled:
+        memory_block = "\n## Memory recalled (Meterless H-MEM)\n" + "\n".join("- " + r[:400] for r in recalled) + "\n"
+        print("H-MEM recalled earlier verified findings:")
+        for r in recalled:
+            print("  - " + r[:220])
 
     evidence = []
     run_battery(evidence)
@@ -280,7 +285,7 @@ def investigate(question):
         final = fallback_report(question, evidence, "The language model was unavailable.")
 
     report_body = clean_report(final, question)
-    report = report_body + "\n" + render_evidence(evidence)
+    report = report_body + "\n" + memory_block + "\n" + render_evidence(evidence)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     path = f"cases/case_{stamp}.md"
@@ -307,7 +312,7 @@ def investigate(question):
         except Exception as e:
             log("memory_error", error=str(e)[:200])
 
-    print(report_body + "\n" + render_evidence(evidence, full=False))
+    print(report_body + "\n" + memory_block + "\n" + render_evidence(evidence, full=False))
     print(f"\nFull SQL for every evidence item is saved in: {path}")
     return report
 
